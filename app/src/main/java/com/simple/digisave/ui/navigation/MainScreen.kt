@@ -31,9 +31,22 @@ fun MainScreen(rootNavController: NavHostController) {
         else -> ""
     }
 
+    val items = listOf(
+        BottomNavItem.Dashboard,
+        BottomNavItem.Budgets,
+        BottomNavItem.Analytics,
+        BottomNavItem.Transactions,
+        BottomNavItem.Profile
+    )
+
     Scaffold(
-        topBar = { DigiSaveTopBar(topBarTitle) }, // ✅ dynamic title
-        bottomBar = { BottomNavBar(mainNavController) }
+        topBar = { DigiSaveTopBar(topBarTitle) },
+        bottomBar = {
+            BubbleBottomNavBar(
+                navController = mainNavController,
+                items = items // ✅ pass list here
+            )
+        }
     ) { innerPadding ->
         NavHost(
             navController = mainNavController,
