@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "85054517540",
+    "project_id": "digisave-3cc78",
+    "storage_bucket": "digisave-3cc78.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:85054517540:android:ec7a7897f0de3cd1c743b1",
+        "android_client_info": {
+          "package_name": "com.simple.digisave"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIlwRcSd6jiRNNpATzrdBeZvdQUebkBBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
