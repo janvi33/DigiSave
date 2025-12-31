@@ -15,10 +15,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.accompanist.navigation.animation.AnimatedNavHost
-import com.google.accompanist.navigation.animation.composable
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
 
 import com.simple.digisave.ui.components.DigiSaveTopBar
 import com.simple.digisave.ui.dashboard.DashboardScreen
@@ -35,17 +35,11 @@ fun MainScreen(
     userId: String
 ) {
     val bottomNavController = rememberNavController()
+
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    // Shared DashboardViewModel for Dashboard + Transactions
-    val mainEntry = remember(rootNavController) { rootNavController.currentBackStackEntry!! }
-    val dashboardViewModel: DashboardViewModel = hiltViewModel(mainEntry)
-
-    var showFilterSheet by remember { mutableStateOf(false) }
-
+    // Track animation direction
     val items = listOf(
         BottomNavItem.Dashboard,
         BottomNavItem.Budgets,
@@ -53,6 +47,16 @@ fun MainScreen(
         BottomNavItem.Transactions,
         BottomNavItem.Profile
     )
+
+    var previousIndex by remember { mutableStateOf(0) }
+    val currentIndex = items.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0)
+
+    // Shared ViewModel for Dashboard + Transactions
+    val mainEntry = remember(rootNavController) { rootNavController.currentBackStackEntry!! }
+    val dashboardViewModel: DashboardViewModel = hiltViewModel(mainEntry)
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    var showFilterSheet by remember { mutableStateOf(false) }
 
     val topBarTitle = when (currentRoute) {
         BottomNavItem.Dashboard.route -> "DigiSave"
@@ -85,7 +89,15 @@ fun MainScreen(
         bottomBar = {
             BubbleBottomNavBar(
                 navController = bottomNavController,
-                items = items
+                items = items,
+                onTabSelected = { newRoute ->
+                    previousIndex = currentIndex
+                    bottomNavController.navigate(newRoute) {
+                        popUpTo(bottomNavController.graph.startDestinationId) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
             )
         },
 
@@ -116,27 +128,36 @@ fun MainScreen(
         }
     ) { innerPadding ->
 
-        // ⭐ Animated Navigation Host
+        // ⭐ PREMIUM DIRECTIONAL ANIMATIONS
         AnimatedNavHost(
             navController = bottomNavController,
             startDestination = BottomNavItem.Dashboard.route,
             modifier = Modifier.padding(innerPadding),
 
             enterTransition = {
-                fadeIn(animationSpec = tween(250)) +
-                        slideInHorizontally(animationSpec = tween(250)) { it / 8 }
+                if (currentIndex > previousIndex) {
+                    // Forward → slide from right
+                    slideInHorizontally(tween(260)) { it / 3 } + fadeIn(tween(200))
+                } else {
+                    // Backward → slide from left
+                    slideInHorizontally(tween(260)) { -it / 3 } + fadeIn(tween(200))
+                }
             },
+
             exitTransition = {
-                fadeOut(animationSpec = tween(200)) +
-                        slideOutHorizontally(animationSpec = tween(200)) { -it / 8 }
+                if (currentIndex > previousIndex) {
+                    slideOutHorizontally(tween(200)) { -it / 3 } + fadeOut(tween(150))
+                } else {
+                    slideOutHorizontally(tween(200)) { it / 3 } + fadeOut(tween(150))
+                }
             },
+
             popEnterTransition = {
-                fadeIn(animationSpec = tween(250)) +
-                        slideInHorizontally(animationSpec = tween(250)) { -it / 8 }
+                slideInHorizontally(tween(260)) { -it / 3 } + fadeIn(tween(180))
             },
+
             popExitTransition = {
-                fadeOut(animationSpec = tween(200)) +
-                        slideOutHorizontally(animationSpec = tween(200)) { it / 8 }
+                slideOutHorizontally(tween(200)) { it / 3 } + fadeOut(tween(150))
             }
         ) {
 
@@ -153,17 +174,9 @@ fun MainScreen(
                 TransactionsScreen(viewModel = dashboardViewModel)
             }
 
-            composable(BottomNavItem.Budgets.route) {
-                Text("Budgets Screen")
-            }
-
-            composable(BottomNavItem.Analytics.route) {
-                Text("Analytics Screen")
-            }
-
-            composable(BottomNavItem.Profile.route) {
-                Text("Profile Screen")
-            }
+            composable(BottomNavItem.Budgets.route) { Text("Budgets Screen") }
+            composable(BottomNavItem.Analytics.route) { Text("Analytics Screen") }
+            composable(BottomNavItem.Profile.route) { Text("Profile Screen") }
         }
     }
 
@@ -172,17 +185,14 @@ fun MainScreen(
         SortGroupBottomSheet(
             currentSort = dashboardViewModel.sortOption.collectAsState().value,
             currentGroup = dashboardViewModel.groupOption.collectAsState().value,
-
             onApply = { sort, group ->
                 dashboardViewModel.updateSort(sort)
                 dashboardViewModel.updateGroup(group)
             },
-
             onReset = {
                 dashboardViewModel.updateSort(SortOption.DATE_ADDED)
                 dashboardViewModel.updateGroup(GroupOption.NONE)
             },
-
             onDismiss = { showFilterSheet = false }
         )
     }
