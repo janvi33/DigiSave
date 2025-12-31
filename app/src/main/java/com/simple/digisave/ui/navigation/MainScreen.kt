@@ -1,35 +1,50 @@
 package com.simple.digisave.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.simple.digisave.ui.components.DigiSaveTopBar
 import com.simple.digisave.ui.dashboard.DashboardScreen
+import com.simple.digisave.ui.dashboard.DashboardViewModel
 import com.simple.digisave.ui.transactions.TransactionsScreen
+import com.simple.digisave.domain.sorting.SortOption
+import com.simple.digisave.domain.grouping.GroupOption
+import com.simple.digisave.ui.transactions.SortGroupBottomSheet
 
 @Composable
-fun MainScreen(rootNavController: NavHostController) {
-    val mainNavController = rememberNavController()
-    val navBackStackEntry by mainNavController.currentBackStackEntryAsState()
+fun MainScreen(
+    rootNavController: NavHostController,
+    userId: String
+) {
+    val bottomNavController = rememberNavController()
+    val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Map route → title
-    val topBarTitle = when (currentRoute) {
-        BottomNavItem.Dashboard.route -> "DigiSave"
-        BottomNavItem.Budgets.route -> "Budgets"
-        BottomNavItem.Analytics.route -> "Analytics"
-        BottomNavItem.Transactions.route -> "All Transactions"
-        BottomNavItem.Profile.route -> "Profile"
-        else -> ""
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // ⭐ Correct ViewModel scoping — tied to the parent route "main/{userId}"
+    val mainEntry = remember(rootNavController) {
+        rootNavController.currentBackStackEntry!!
     }
+
+    val dashboardViewModel: DashboardViewModel = hiltViewModel(mainEntry)
+
+
+    var showFilterSheet by remember { mutableStateOf(false) }
 
     val items = listOf(
         BottomNavItem.Dashboard,
@@ -39,30 +54,120 @@ fun MainScreen(rootNavController: NavHostController) {
         BottomNavItem.Profile
     )
 
+    val topBarTitle = when (currentRoute) {
+        BottomNavItem.Dashboard.route -> "DigiSave"
+        BottomNavItem.Budgets.route -> "Budgets"
+        BottomNavItem.Analytics.route -> "Analytics"
+        BottomNavItem.Transactions.route -> "All Transactions"
+        BottomNavItem.Profile.route -> "Profile"
+        else -> ""
+    }
+
+    val showFab = currentRoute == BottomNavItem.Dashboard.route
+
     Scaffold(
-        topBar = { DigiSaveTopBar(topBarTitle) },
+        topBar = {
+            DigiSaveTopBar(
+                title = topBarTitle,
+                actions = {
+                    if (currentRoute == BottomNavItem.Transactions.route) {
+                        IconButton(onClick = { showFilterSheet = true }) {
+                            Icon(
+                                imageVector = Icons.Default.FilterList,
+                                contentDescription = "Sort & Filter"
+                            )
+                        }
+                    }
+                }
+            )
+        },
+
         bottomBar = {
             BubbleBottomNavBar(
-                navController = mainNavController,
-                items = items // ✅ pass list here
+                navController = bottomNavController,
+                items = items
             )
+        },
+
+        snackbarHost = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .zIndex(2f)
+            ) {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+        },
+
+        floatingActionButton = {
+            if (showFab) {
+                FloatingActionButton(
+                    onClick = { rootNavController.navigate("add_transaction") },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add",
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
         }
     ) { innerPadding ->
+
         NavHost(
-            navController = mainNavController,
+            navController = bottomNavController,
             startDestination = BottomNavItem.Dashboard.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+
             composable(BottomNavItem.Dashboard.route) {
                 DashboardScreen(
-                    rootNavController = rootNavController,
-                    mainNavController = mainNavController
+                    mainNavController = rootNavController,
+                    bottomNavController = bottomNavController,
+                    userId = userId,
+                    snackbarHostState = snackbarHostState
                 )
             }
-            composable(BottomNavItem.Budgets.route) { Text("Budgets Screen") }
-            composable(BottomNavItem.Analytics.route) { Text("Analytics Screen") }
-            composable(BottomNavItem.Transactions.route) { TransactionsScreen() }
-            composable(BottomNavItem.Profile.route) { Text("Profile Screen") }
+
+            composable(BottomNavItem.Transactions.route) {
+                TransactionsScreen(viewModel = dashboardViewModel)
+            }
+
+            composable(BottomNavItem.Budgets.route) {
+                Text("Budgets Screen")
+            }
+
+            composable(BottomNavItem.Analytics.route) {
+                Text("Analytics Screen")
+            }
+
+            composable(BottomNavItem.Profile.route) {
+                Text("Profile Screen")
+            }
         }
+    }
+
+    // ⭐ Bottom sheet for Sort & Group options
+    if (showFilterSheet) {
+        SortGroupBottomSheet(
+            currentSort = dashboardViewModel.sortOption.collectAsState().value,
+            currentGroup = dashboardViewModel.groupOption.collectAsState().value,
+
+            onApply = { sort, group ->
+                dashboardViewModel.updateSort(sort)
+                dashboardViewModel.updateGroup(group)
+            },
+
+            onReset = {
+                dashboardViewModel.updateSort(SortOption.DATE_ADDED)
+                dashboardViewModel.updateGroup(GroupOption.NONE)
+            },
+
+            onDismiss = { showFilterSheet = false }
+        )
     }
 }

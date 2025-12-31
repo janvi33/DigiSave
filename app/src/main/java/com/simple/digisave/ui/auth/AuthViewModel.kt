@@ -13,6 +13,7 @@ import javax.inject.Inject
 class AuthViewModel @Inject constructor(
     private val repo: AuthRepository
 ): ViewModel() {
+
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState
 
@@ -20,15 +21,23 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             val result = repo.login(email,password)
-            _authState.value = if(result.isSuccess) AuthState.Success else AuthState.Error(result.exceptionOrNull()?.message)
+            _authState.value = if (result.isSuccess) {
+                AuthState.Success(result.getOrNull()!!) // ✅ pass userId
+            } else {
+                AuthState.Error(result.exceptionOrNull()?.message)
+            }
         }
     }
 
     fun signUp(email:String, password:String) {
-        viewModelScope.launch{
+        viewModelScope.launch {
             _authState.value = AuthState.Loading
             val result = repo.signUp(email, password)
-            _authState.value = if(result.isSuccess) AuthState.Success else AuthState.Error(result.exceptionOrNull()?.message)
+            _authState.value = if (result.isSuccess) {
+                AuthState.Success(result.getOrNull()!!) // ✅ pass userId
+            } else {
+                AuthState.Error(result.exceptionOrNull()?.message)
+            }
         }
     }
 
@@ -41,6 +50,6 @@ class AuthViewModel @Inject constructor(
 sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
-    object Success : AuthState()
+    data class Success(val userId: String) : AuthState() // ✅ include userId
     data class Error(val message: String?) : AuthState()
 }

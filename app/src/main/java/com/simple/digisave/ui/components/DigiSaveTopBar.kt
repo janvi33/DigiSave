@@ -8,13 +8,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.navigation.NavController
+import androidx.compose.foundation.layout.RowScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DigiSaveTopBar(
     title: String,
     showBackButton: Boolean = false,
-    navController: NavController? = null
+    navController: NavController? = null,
+    actions: @Composable RowScope.() -> Unit = {}   // ⭐ NEW
 ) {
     CenterAlignedTopAppBar(
         title = {
@@ -26,6 +28,7 @@ fun DigiSaveTopBar(
                 )
             )
         },
+
         navigationIcon = {
             if (showBackButton && navController != null) {
                 IconButton(onClick = { navController.popBackStack() }) {
@@ -37,9 +40,14 @@ fun DigiSaveTopBar(
                 }
             }
         },
+
+        actions = actions,   // ⭐ ADDED
+
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
             containerColor = MaterialTheme.colorScheme.primary,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary
+            titleContentColor = MaterialTheme.colorScheme.onPrimary,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimary  // ⭐ ensures icons are visible
         )
     )
 }

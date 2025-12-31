@@ -37,15 +37,15 @@ import com.simple.digisave.R
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltViewModel()) {
-    var email by remember { mutableStateOf("")}
-    var password by remember { mutableStateOf("")}
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
 
     val authState by viewModel.authState.collectAsState()
 
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
-    ){
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -54,20 +54,19 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
         ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription ="DigiSave Logo",
+                contentDescription = "DigiSave Logo",
                 modifier = Modifier.height(80.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-
             Text(
-                text ="DigiSave",
+                text = "DigiSave",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp
                 ),
-                color =MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -81,11 +80,11 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
             )
             Spacer(modifier = Modifier.height(32.dp))
 
-            //Email field
+            // Email field
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it},
-                label = { Text("Email")},
+                onValueChange = { email = it },
+                label = { Text("Email") },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
@@ -93,10 +92,11 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Password field
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it},
-                label = { Text("Password")},
+                onValueChange = { password = it },
+                label = { Text("Password") },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 visualTransformation = PasswordVisualTransformation(),
@@ -105,18 +105,15 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Login button
             Button(
-                onClick = { viewModel.login(email,password) },
+                onClick = { viewModel.login(email, password) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
-
-                ) {
-                Text(
-                    text = "Login"
-                )
-
-
+            ) {
+                Text(text = "Login")
             }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
@@ -129,23 +126,25 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            when(authState) {
+            when (authState) {
                 is AuthState.Loading -> CircularProgressIndicator()
-                is AuthState.Success -> {
 
-                    LaunchedEffect(authState) {
-                        navController.navigate("main") {
+                is AuthState.Success -> {
+                    val userId = (authState as AuthState.Success).userId
+                    LaunchedEffect(userId) {
+                        navController.navigate("main/$userId") { // ✅ pass userId
                             popUpTo("login") { inclusive = true }
                         }
                     }
-
                 }
+
                 is AuthState.Error -> Text(
                     "Error: ${(authState as AuthState.Error).message}",
                     color = Color.Red,
                     style = MaterialTheme.typography.bodyMedium
                 )
-                else -> { }
+
+                else -> {}
             }
         }
     }

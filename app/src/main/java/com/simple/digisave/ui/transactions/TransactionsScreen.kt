@@ -5,52 +5,96 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.firebase.auth.FirebaseAuth
-import com.simple.digisave.ui.components.DigiSaveTopBar
 import com.simple.digisave.ui.components.EmptyState
 import com.simple.digisave.ui.dashboard.DashboardViewModel
 import com.simple.digisave.ui.dashboard.TransactionRow
-import com.simple.digisave.ui.dashboard.TransactionUi
+import com.simple.digisave.domain.grouping.GroupItem
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionsScreen(
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel   // ⭐ shared ViewModel injected from MainScreen
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val userId = FirebaseAuth.getInstance().currentUser?.uid
 
-    // Load transactions when screen opens
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Load data only once; sorting & grouping will update automatically
     LaunchedEffect(userId) {
         userId?.let { viewModel.loadData(it) }
     }
 
     Scaffold(
-        ) { innerPadding ->
-        if (uiState.allTransactions.isEmpty()) {
-            EmptyState("No transactions yet")
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(uiState.allTransactions) { tx: TransactionUi ->
-                    TransactionRow(
-                        tx = tx,
-                        onDelete = { id ->
-                            viewModel.deleteTransactionById(id)
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+        TransactionsContent(
+            groupedList = uiState.groupedTransactions,
+            onDelete = { localId, firestoreId, deletedTx ->
+                viewModel.deleteTransactionById(localId, firestoreId)
+
+                scope.launch {
+                    val result = snackbarHostState.showSnackbar(
+                        "Transaction deleted",
+                        actionLabel = "Undo"
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        userId?.let {
+                            viewModel.addTransaction(
+                                userId = it,
+                                title = deletedTx.title,
+                                amount = deletedTx.amount,
+                                categoryId = deletedTx.categoryId,
+                                timestamp = deletedTx.timestamp
+                            )
                         }
+                    }
+                }
+            },
+            modifier = Modifier.padding(innerPadding)
+        )
+    }
+}
+
+@Composable
+fun TransactionsContent(
+    groupedList: List<GroupItem>,
+    onDelete: (Int, String?, com.simple.digisave.ui.dashboard.model.TransactionUi) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (groupedList.isEmpty()) {
+        EmptyState("No transactions yet")
+        return
+    }
+
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(groupedList) { item ->
+            when (item) {
+
+                is GroupItem.Header -> {
+                    Text(
+                        text = item.label,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
 
+                is GroupItem.Item -> {
+                    TransactionRow(
+                        tx = item.tx,
+                        onDelete = { id, firestoreId -> onDelete(id, firestoreId, item.tx) }
+                    )
+                }
             }
         }
     }
