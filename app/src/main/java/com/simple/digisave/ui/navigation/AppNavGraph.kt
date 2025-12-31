@@ -40,9 +40,5 @@ fun AppNavGraph(rootNavController: NavHostController) {
             CategoriesScreen(rootNavController)
         }
 
-//        // ✅ NEW: transactions route (fixes crash)
-//        composable(BottomNavItem.Transactions.route) {
-//            TransactionsScreen()
-//        }
     }
 }

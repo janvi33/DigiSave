@@ -70,6 +70,8 @@ dependencies {
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.0")
+    implementation("com.google.accompanist:accompanist-navigation-animation:0.33.2-alpha")
+
 
     // Firebase (BOM controls versions)
     implementation(platform(libs.firebase.bom))

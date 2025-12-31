@@ -12,11 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+
 import com.simple.digisave.ui.components.DigiSaveTopBar
 import com.simple.digisave.ui.dashboard.DashboardScreen
 import com.simple.digisave.ui.dashboard.DashboardViewModel
@@ -25,6 +28,7 @@ import com.simple.digisave.domain.sorting.SortOption
 import com.simple.digisave.domain.grouping.GroupOption
 import com.simple.digisave.ui.transactions.SortGroupBottomSheet
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun MainScreen(
     rootNavController: NavHostController,
@@ -36,13 +40,9 @@ fun MainScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // ⭐ Correct ViewModel scoping — tied to the parent route "main/{userId}"
-    val mainEntry = remember(rootNavController) {
-        rootNavController.currentBackStackEntry!!
-    }
-
+    // Shared DashboardViewModel for Dashboard + Transactions
+    val mainEntry = remember(rootNavController) { rootNavController.currentBackStackEntry!! }
     val dashboardViewModel: DashboardViewModel = hiltViewModel(mainEntry)
-
 
     var showFilterSheet by remember { mutableStateOf(false) }
 
@@ -91,9 +91,7 @@ fun MainScreen(
 
         snackbarHost = {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .zIndex(2f)
+                modifier = Modifier.fillMaxWidth().zIndex(2f)
             ) {
                 SnackbarHost(
                     hostState = snackbarHostState,
@@ -118,10 +116,28 @@ fun MainScreen(
         }
     ) { innerPadding ->
 
-        NavHost(
+        // ⭐ Animated Navigation Host
+        AnimatedNavHost(
             navController = bottomNavController,
             startDestination = BottomNavItem.Dashboard.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+
+            enterTransition = {
+                fadeIn(animationSpec = tween(250)) +
+                        slideInHorizontally(animationSpec = tween(250)) { it / 8 }
+            },
+            exitTransition = {
+                fadeOut(animationSpec = tween(200)) +
+                        slideOutHorizontally(animationSpec = tween(200)) { -it / 8 }
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = tween(250)) +
+                        slideInHorizontally(animationSpec = tween(250)) { -it / 8 }
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = tween(200)) +
+                        slideOutHorizontally(animationSpec = tween(200)) { it / 8 }
+            }
         ) {
 
             composable(BottomNavItem.Dashboard.route) {
@@ -151,7 +167,7 @@ fun MainScreen(
         }
     }
 
-    // ⭐ Bottom sheet for Sort & Group options
+    // ⭐ Bottom sheet for sorting/grouping
     if (showFilterSheet) {
         SortGroupBottomSheet(
             currentSort = dashboardViewModel.sortOption.collectAsState().value,

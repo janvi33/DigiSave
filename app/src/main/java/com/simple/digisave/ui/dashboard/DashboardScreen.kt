@@ -46,7 +46,14 @@ fun DashboardScreen(
 
     DashboardContent(
         uiState = uiState,
-        onViewAllClick = { bottomNavController.navigate(BottomNavItem.Transactions.route) },
+        onViewAllClick = { bottomNavController.navigate(BottomNavItem.Transactions.route) {
+            launchSingleTop = true
+            restoreState = true
+            popUpTo(bottomNavController.graph.startDestinationId) {
+                saveState = true
+            }
+        }
+        },
         onDelete = { localId, firestoreId, deletedTx ->
             viewModel.deleteTransactionById(localId, firestoreId)
 
