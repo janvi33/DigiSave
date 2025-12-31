@@ -9,23 +9,26 @@ class AuthRepository @Inject constructor(
 ) {
 
     //Sign up new user
-    suspend fun signUp(email: String, password:String):Result<Unit> {
+    suspend fun login(email: String, password: String): Result<String> {
         return try {
-            firebaseAuth.createUserWithEmailAndPassword(email, password).await()
-            Result.success(Unit)
-        } catch(e: Exception) {
+            val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
+            val userId = result.user?.uid ?: throw Exception("No user ID")
+            Result.success(userId)
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun login(email: String, password: String): Result<Unit> {
+    suspend fun signUp(email: String, password: String): Result<String> {
         return try {
-            firebaseAuth.signInWithEmailAndPassword(email, password).await()
-            Result.success(Unit)
-        } catch (e: Exception){
+            val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
+            val userId = result.user?.uid ?: throw Exception("No user ID")
+            Result.success(userId)
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
 
     fun logout() {
         firebaseAuth.signOut()

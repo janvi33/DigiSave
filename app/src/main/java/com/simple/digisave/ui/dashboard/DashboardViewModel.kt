@@ -2,21 +2,17 @@ package com.simple.digisave.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.simple.digisave.data.local.TransactionEntity
 import com.simple.digisave.data.repository.TransactionRepository
+import com.simple.digisave.domain.mapper.toUi
+import com.simple.digisave.ui.dashboard.model.DashboardUiState
+import com.simple.digisave.domain.sorting.SortOption
+import com.simple.digisave.domain.sorting.sortTransactions
+import com.simple.digisave.domain.grouping.GroupOption
+import com.simple.digisave.domain.grouping.groupTransactions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class DashboardUiState(
-    val totalBalance: Double = 0.0,
-    val totalIncome: Double = 0.0,
-    val totalExpenses: Double = 0.0,
-    val recentTransactions: List<TransactionUi> = emptyList(),
-    val allTransactions: List<TransactionUi> = emptyList() // ✅ new
-)
-
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
@@ -26,38 +22,51 @@ class DashboardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    // Sorting + grouping states
+    private val _sortOption = MutableStateFlow(SortOption.DATE_ADDED)
+    val sortOption = _sortOption.asStateFlow()
+
+    private val _groupOption = MutableStateFlow(GroupOption.NONE)
+    val groupOption = _groupOption.asStateFlow()
+
+    private var hasSyncedOnce = false
+
     fun loadData(userId: String) {
         viewModelScope.launch {
-            combine(
-                repo.getAllTransactions(userId),
-                repo.getTotalIncome(userId),
-                repo.getTotalExpenses(userId)
-            ) { transactions, income, expenses ->
+            // Run sync only once per app launch, but UI stays reactive
+            if (!hasSyncedOnce) {
+                repo.syncTransactions(userId)
+                hasSyncedOnce = true
+            }
 
-                val incomeVal = income ?: 0.0
-                val expenseVal = expenses ?: 0.0
-                val balance = incomeVal - expenseVal
+            combine(
+                repo.getTransactionsWithCategory(userId),
+                repo.getTotalIncome(userId),
+                repo.getTotalExpenses(userId),
+                sortOption,
+                groupOption
+            ) { transactions, income, expenses, sort, group ->
+
+                val list = transactions.map { it.toUi() }
+
+                // SORT
+                val sorted = sortTransactions(list, sort)
+
+                // GROUP
+                val grouped = groupTransactions(sorted, group)
+
+                // BALANCE
+                val inc = income ?: 0.0
+                val exp = expenses ?: 0.0
+                val balance = inc + exp
 
                 DashboardUiState(
                     totalBalance = balance,
-                    totalIncome = incomeVal,
-                    totalExpenses = expenseVal,
-                    recentTransactions = transactions.take(5).map { // ✅ only top 5
-                        TransactionUi(
-                            id = it.id,
-                            title = it.title,
-                            amount = it.amount,
-                            icon = if (it.amount > 0) "💰" else "💸"
-                        )
-                    },
-                    allTransactions = transactions.map { // ✅ full list
-                        TransactionUi(
-                            id = it.id,
-                            title = it.title,
-                            amount = it.amount,
-                            icon = if (it.amount > 0) "💰" else "💸"
-                        )
-                    }
+                    totalIncome = inc,
+                    totalExpenses = exp,
+                    recentTransactions = sorted.take(5),
+                    allTransactions = sorted,
+                    groupedTransactions = grouped
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -65,24 +74,38 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun addTransaction(userId: String, title: String, amount: Double) {
+    fun updateSort(option: SortOption) {
+        _sortOption.value = option
+    }
+
+    fun updateGroup(option: GroupOption) {
+        _groupOption.value = option
+    }
+
+    fun addTransaction(
+        userId: String,
+        title: String,
+        amount: Double,
+        categoryId: Int? = null,
+        note: String? = null,
+        timestamp: Long = System.currentTimeMillis()
+    ) {
         viewModelScope.launch {
             repo.insertTransaction(
-                TransactionEntity(
-                    userId = userId,
-                    title = title,
-                    amount = amount
-                )
+                userId = userId,
+                title = title,
+                amount = amount,
+                categoryId = categoryId,
+                note = note,
+                timestamp = timestamp
             )
+            hasSyncedOnce = false
         }
     }
 
-    fun deleteTransactionById(id: Int) {
+    fun deleteTransactionById(localId: Int, firestoreId: String?) {
         viewModelScope.launch {
-            repo.deleteTransactionById(id)
+            repo.deleteTransactionById(localId, firestoreId)
         }
     }
-
-
-
 }

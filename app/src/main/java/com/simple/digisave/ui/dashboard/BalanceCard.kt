@@ -1,15 +1,19 @@
 package com.simple.digisave.ui.dashboard
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simple.digisave.ui.theme.AccentTeal
+import java.text.NumberFormat
+import java.util.*
 
 @Composable
 fun BalanceCard(
@@ -17,6 +21,29 @@ fun BalanceCard(
     totalIncome: Double,
     totalExpenses: Double
 ) {
+    val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.getDefault())
+    val absBalance = kotlin.math.abs(totalBalance)
+    val formattedBalance = currencyFormatter.format(absBalance)
+
+    // 🎨 Animated color transitions
+    val balanceColor by animateColorAsState(
+        targetValue = if (totalBalance < 0)
+            MaterialTheme.colorScheme.error
+        else
+            AccentTeal,
+        label = "balanceColor"
+    )
+
+    val incomeColor by animateColorAsState(
+        targetValue = AccentTeal,
+        label = "incomeColor"
+    )
+
+    val expenseColor by animateColorAsState(
+        targetValue = MaterialTheme.colorScheme.error,
+        label = "expenseColor"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -40,13 +67,14 @@ fun BalanceCard(
                 )
             )
 
+            // 💫 Smooth animated color and sign
             Text(
-                text = "$$totalBalance",
+                text = if (totalBalance < 0) "-$formattedBalance" else formattedBalance,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 36.sp
                 ),
-                color = MaterialTheme.colorScheme.primary
+                color = balanceColor
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -56,13 +84,13 @@ fun BalanceCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    "Income: $$totalIncome",
-                    color = AccentTeal,
+                    "Income: ${currencyFormatter.format(totalIncome)}",
+                    color = incomeColor,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
                 Text(
-                    "Expenses: $$totalExpenses",
-                    color = MaterialTheme.colorScheme.error,
+                    "Expenses: ${currencyFormatter.format(kotlin.math.abs(totalExpenses))}",
+                    color = expenseColor,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
             }

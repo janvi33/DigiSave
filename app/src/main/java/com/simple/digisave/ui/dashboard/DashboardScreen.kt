@@ -1,175 +1,210 @@
 package com.simple.digisave.ui.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
-import com.simple.digisave.ui.components.DigiSaveTopBar
 import com.simple.digisave.ui.components.EmptyState
+import com.simple.digisave.ui.dashboard.model.DashboardUiState
+import com.simple.digisave.ui.dashboard.model.TransactionUi
 import com.simple.digisave.ui.navigation.BottomNavItem
 import com.simple.digisave.ui.theme.AccentTeal
-import com.simple.digisave.ui.theme.ActiveBlue
 import com.simple.digisave.ui.theme.PastelGreen
+import kotlinx.coroutines.launch
+import java.text.NumberFormat
+import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    rootNavController: NavController,    // for add_transaction
-    mainNavController: NavController,    // for bottom nav
+    mainNavController: NavController,
+    bottomNavController: NavController,
+    userId: String,
+    snackbarHostState: SnackbarHostState, // ✅ now received from MainScreen
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val userId = FirebaseAuth.getInstance().currentUser?.uid
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(userId) {
-        userId?.let { viewModel.loadData(it) }
-    }
+    LaunchedEffect(userId) { viewModel.loadData(userId) }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { rootNavController.navigate("add_transaction") },
-                containerColor = ActiveBlue
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Add",
-                    tint = MaterialTheme.colorScheme.onPrimary
+    DashboardContent(
+        uiState = uiState,
+        onViewAllClick = { bottomNavController.navigate(BottomNavItem.Transactions.route) },
+        onDelete = { localId, firestoreId, deletedTx ->
+            viewModel.deleteTransactionById(localId, firestoreId)
+
+            scope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = "Transaction deleted",
+                    actionLabel = "Undo",
+                    duration = SnackbarDuration.Short
                 )
+                if (result == SnackbarResult.ActionPerformed) {
+                    viewModel.addTransaction(
+                        userId = userId,
+                        title = deletedTx.title,
+                        amount = deletedTx.amount,
+                        categoryId = deletedTx.categoryId,     // ✅ RESTORE ORIGINAL CATEGORY
+                        timestamp = deletedTx.timestamp        // ✅ RESTORE ORIGINAL TIMESTAMP
+                    )
+
+                }
             }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Top
-        ) {
-            // Balance Card
+    )
+}
+
+
+
+@Composable
+fun DashboardContent(
+    uiState: DashboardUiState,
+    onViewAllClick: () -> Unit,
+    onDelete: (Int, String?, TransactionUi) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
             BalanceCard(
                 totalBalance = uiState.totalBalance,
                 totalIncome = uiState.totalIncome,
                 totalExpenses = uiState.totalExpenses
             )
+        }
 
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Recent Transactions
+        item {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Recent Transactions",
+                    "Recent Transactions",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
-                TextButton(
-                    onClick = { mainNavController.navigate(BottomNavItem.Transactions.route) }
-                ) {
-                    Text("View All")
-                }
+                TextButton(onClick = onViewAllClick) { Text("View All") }
             }
+        }
 
-            if (uiState.recentTransactions.isEmpty()) {
-                EmptyState("No recent transactions")
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(uiState.recentTransactions) { tx ->
-                        TransactionRow(
-                            tx = tx,
-                            onDelete = { id -> viewModel.deleteTransactionById(id) }
-                        )
-                    }
+        if (uiState.recentTransactions.isEmpty()) {
+            item { EmptyState("No recent transactions") }
+        } else {
+            items(uiState.recentTransactions, key = { it.id }) { tx ->
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    TransactionRow(
+                        tx = tx,
+                        onDelete = { localId, firestoreId ->
+                            onDelete(localId, firestoreId, tx) // ✅ pass tx so we can undo
+                        }
+                    )
                 }
             }
         }
+
+        item { Spacer(modifier = Modifier.height(72.dp)) }
     }
 }
-
 
 @Composable
 fun TransactionRow(
     tx: TransactionUi,
-    onDelete: (Int) -> Unit
+    onDelete: (Int, String?) -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.getDefault())
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        elevation = CardDefaults.cardElevation(6.dp),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+        modifier = modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: icon + title
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = tx.icon,
-                    fontSize = 20.sp,
-                    modifier = Modifier.padding(end = 12.dp)
-                )
-                Text(
-                    text = tx.title,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            color = PastelGreen.copy(alpha = 0.25f),
+                            shape = RoundedCornerShape(12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = tx.icon, fontSize = 22.sp)
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Text(
+                        text = tx.title,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                    Text(
+                        text = "${tx.categoryName} • ${tx.date}",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
             }
 
-            // Right: amount + delete button
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val formattedAmount = currencyFormatter.format(kotlin.math.abs(tx.amount))
                 Text(
-                    text = if (tx.amount > 0) "+$${tx.amount}" else "-$${-tx.amount}",
+                    text = if (tx.amount > 0) "+$formattedAmount" else "-$formattedAmount",
                     color = if (tx.amount > 0) AccentTeal else MaterialTheme.colorScheme.error,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(end = 8.dp)
+                    fontSize = 16.sp
                 )
-                IconButton(onClick = { onDelete(tx.id) }) {
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                IconButton(
+                    onClick = { onDelete(tx.id, tx.firestoreId) },
+                    modifier = Modifier.size(28.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete Transaction",
-                        tint = MaterialTheme.colorScheme.error
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.85f)
                     )
                 }
             }
         }
     }
 }
-
-
-
-data class TransactionUi(
-    val id: Int,
-    val title: String,
-    val amount: Double,
-    val icon: String
-)
-
-

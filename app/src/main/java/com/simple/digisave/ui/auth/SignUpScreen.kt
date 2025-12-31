@@ -37,12 +37,11 @@ import com.simple.digisave.R
 @Composable
 fun SignUpScreen(navController: NavController, viewModel: AuthViewModel = hiltViewModel()) {
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("")}
-    var confirmPassword by remember { mutableStateOf("")}
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf<String?>(null) }
 
     val authState by viewModel.authState.collectAsState()
-
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -54,18 +53,16 @@ fun SignUpScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription ="DigiSave Logo",
+                contentDescription = "DigiSave Logo",
                 modifier = Modifier.height(80.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-
             Text(
-                text = " Create Account",
+                text = "Create Account",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp
@@ -75,10 +72,11 @@ fun SignUpScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Email field
             OutlinedTextField(
                 value = email,
-                onValueChange = {email = it},
-                label = { Text("Email")},
+                onValueChange = { email = it },
+                label = { Text("Email") },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
@@ -86,10 +84,11 @@ fun SignUpScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Password field
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password")},
+                label = { Text("Password") },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 visualTransformation = PasswordVisualTransformation(),
@@ -98,10 +97,11 @@ fun SignUpScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Confirm Password field
             OutlinedTextField(
                 value = confirmPassword,
-                onValueChange = { confirmPassword = it},
-                label = {Text("Confirm Password")},
+                onValueChange = { confirmPassword = it },
+                label = { Text("Confirm Password") },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 visualTransformation = PasswordVisualTransformation(),
@@ -110,6 +110,7 @@ fun SignUpScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Sign Up Button
             Button(
                 onClick = {
                     if (password == confirmPassword) {
@@ -128,15 +129,16 @@ fun SignUpScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Already have an account Login",
+                text = "Already have an account? Login",
                 color = MaterialTheme.colorScheme.primary,
-                 modifier = Modifier.clickable {
-                     navController.navigate("login")
-                 }
+                modifier = Modifier.clickable {
+                    navController.navigate("login")
+                }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Validation error
             validationError?.let {
                 Text(
                     text = it,
@@ -145,24 +147,27 @@ fun SignUpScreen(navController: NavController, viewModel: AuthViewModel = hiltVi
                 )
             }
 
-            when(authState){
+            // Handle Auth State
+            when (authState) {
                 is AuthState.Loading -> CircularProgressIndicator()
+
                 is AuthState.Success -> {
-                    LaunchedEffect(authState) {
-                        navController.navigate("main") {
+                    val userId = (authState as AuthState.Success).userId
+                    LaunchedEffect(userId) {
+                        navController.navigate("main/$userId") { // ✅ pass userId
                             popUpTo("signup") { inclusive = true }
                         }
                     }
                 }
+
                 is AuthState.Error -> Text(
                     "Error: ${(authState as AuthState.Error).message}",
                     color = Color.Red,
                     style = MaterialTheme.typography.bodyMedium
                 )
+
                 else -> Unit
             }
-
-
         }
     }
 }
