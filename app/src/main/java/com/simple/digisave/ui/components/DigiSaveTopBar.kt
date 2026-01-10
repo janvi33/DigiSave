@@ -1,39 +1,30 @@
 package com.simple.digisave.ui.components
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.navigation.NavController
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 
 @Composable
 fun SmoothTitle(text: String) {
-    // A fixed-size box prevents layout shifts
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(28.dp), // fixed height so content swaps smoothly
+            .height(28.dp),
         contentAlignment = Alignment.Center
     ) {
-        // AnimatedContent gives perfectly smooth transitions when size is fixed
         AnimatedContent(
             targetState = text,
             transitionSpec = {
@@ -43,17 +34,14 @@ fun SmoothTitle(text: String) {
         ) { animatedText ->
             Text(
                 text = animatedText,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
-                ),
-                maxLines = 1
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
     }
 }
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,30 +51,51 @@ fun DigiSaveTopBar(
     navController: NavController? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    CenterAlignedTopAppBar(
+    // ⭐ Custom layout to truly center the title
+    TopAppBar(
         title = {
-            SmoothTitle(title)   // ⭐ Premium animated title
-        },
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
-        navigationIcon = {
-            if (showBackButton && navController != null) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
+                // LEFT SLOT (Back arrow)
+                Box(
+                    modifier = Modifier.width(48.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (showBackButton && navController != null) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                }
+
+                // CENTER TITLE — always centered perfectly
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    SmoothTitle(title)
+                }
+
+                // RIGHT SLOT (actions)
+                Row(
+                    modifier = Modifier.width(48.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    actions()
                 }
             }
         },
 
-        actions = actions,
-
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primary
         )
     )
 }
