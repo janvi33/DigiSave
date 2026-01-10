@@ -139,7 +139,7 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
                 }
 
                 is AuthState.Error -> Text(
-                    "Error: ${(authState as AuthState.Error).message}",
+                    "Eror: ${(authState as AuthState.Error).message}",
                     color = Color.Red,
                     style = MaterialTheme.typography.bodyMedium
                 )

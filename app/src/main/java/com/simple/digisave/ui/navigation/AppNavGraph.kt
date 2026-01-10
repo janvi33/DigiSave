@@ -11,7 +11,6 @@ import com.simple.digisave.ui.auth.SignUpScreen
 import com.simple.digisave.ui.category.CategoriesScreen
 import com.simple.digisave.ui.splash.SplashScreen
 import com.simple.digisave.ui.transactions.AddTransactionScreen
-import com.simple.digisave.ui.transactions.TransactionsScreen // ✅ import this
 
 @Composable
 fun AppNavGraph(rootNavController: NavHostController) {
@@ -19,11 +18,13 @@ fun AppNavGraph(rootNavController: NavHostController) {
         navController = rootNavController,
         startDestination = "splash"
     ) {
+
+        // Authentication flow
         composable("splash") { SplashScreen(rootNavController) }
         composable("login") { LoginScreen(rootNavController) }
         composable("signup") { SignUpScreen(rootNavController) }
 
-        // ✅ main with userId param
+        // Main app entry point with userId
         composable(
             route = "main/{userId}",
             arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -32,13 +33,27 @@ fun AppNavGraph(rootNavController: NavHostController) {
             MainScreen(rootNavController, userId)
         }
 
-        composable("add_transaction") {
-            AddTransactionScreen(rootNavController)
+        // ⭐ UPDATED add-transaction route (supports income/expense)
+        composable(
+            route = "add_transaction?type={type}",
+            arguments = listOf(
+                navArgument("type") {
+                    type = NavType.StringType
+                    defaultValue = "none"
+                    nullable = true
+                }
+            )
+        ) { backStackEntry ->
+            val type = backStackEntry.arguments?.getString("type")
+            AddTransactionScreen(
+                navController = rootNavController,
+                preselectedType = type
+            )
         }
 
+        // Categories
         composable("categories") {
             CategoriesScreen(rootNavController)
         }
-
     }
 }
