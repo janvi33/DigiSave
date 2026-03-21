@@ -9,5 +9,6 @@ data class TransactionUi(
     val categoryId: Int?,
     val categoryName: String,
     val timestamp: Long,
+    val createdAt: Long,
     val date: String
 )

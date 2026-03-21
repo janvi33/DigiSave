@@ -32,7 +32,7 @@ fun sortTransactions(
             list.sortedByDescending { it.amount }
 
         SortOption.DATE_ADDED ->
-            list.sortedByDescending { it.id }  // Room autoincrement → newest id = latest insert
+            list.sortedByDescending { it.createdAt }
 
         SortOption.DATE_TRANSACTION ->
             list.sortedByDescending { it.timestamp }
