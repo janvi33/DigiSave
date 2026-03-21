@@ -24,11 +24,6 @@ fun TransactionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Load data only once; sorting & grouping will update automatically
-    LaunchedEffect(userId) {
-        userId?.let { viewModel.loadData(it) }
-    }
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->

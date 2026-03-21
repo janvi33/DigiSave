@@ -10,6 +10,7 @@ import com.simple.digisave.domain.sorting.sortTransactions
 import com.simple.digisave.domain.grouping.GroupOption
 import com.simple.digisave.domain.grouping.groupTransactions
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,15 +30,15 @@ class DashboardViewModel @Inject constructor(
     private val _groupOption = MutableStateFlow(GroupOption.NONE)
     val groupOption = _groupOption.asStateFlow()
 
-    private var hasSyncedOnce = false
+    private var dataJob: Job? = null
 
     fun loadData(userId: String) {
-        viewModelScope.launch {
-            // Run sync only once per app launch, but UI stays reactive
-            if (!hasSyncedOnce) {
-                repo.syncTransactions(userId)
-                hasSyncedOnce = true
-            }
+        // Guard: if the collection pipeline is already running, only sync if needed
+        if (dataJob?.isActive == true) return
+
+        dataJob = viewModelScope.launch {
+            // Sync from Firestore once per session
+            repo.syncTransactions(userId)
 
             combine(
                 repo.getTransactionsWithCategory(userId),
@@ -48,20 +49,14 @@ class DashboardViewModel @Inject constructor(
             ) { transactions, income, expenses, sort, group ->
 
                 val list = transactions.map { it.toUi() }
-
-                // SORT
                 val sorted = sortTransactions(list, sort)
-
-                // GROUP
                 val grouped = groupTransactions(sorted, group)
 
-                // BALANCE
                 val inc = income ?: 0.0
                 val exp = expenses ?: 0.0
-                val balance = inc + exp
 
                 DashboardUiState(
-                    totalBalance = balance,
+                    totalBalance = inc + exp,
                     totalIncome = inc,
                     totalExpenses = exp,
                     recentTransactions = sorted.take(5),
@@ -99,7 +94,6 @@ class DashboardViewModel @Inject constructor(
                 note = note,
                 timestamp = timestamp
             )
-            hasSyncedOnce = false
         }
     }
 
