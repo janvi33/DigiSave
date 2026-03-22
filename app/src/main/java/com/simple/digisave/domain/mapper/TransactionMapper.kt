@@ -72,9 +72,10 @@ fun TransactionWithCategory.toUi(): TransactionUi {
         title = title,
         amount = amount,
         icon = categoryIcon ?: if (amount > 0) "💰" else "💸",
-        categoryId = categoryId,       // ✅ ADD THIS
+        categoryId = categoryId,
         categoryName = categoryName ?: "Uncategorized",
-        timestamp = timestamp,         // ✅ ADD THIS
+        timestamp = timestamp,
+        createdAt = createdAt,
         date = formatter.format(Date(timestamp))
     )
 }

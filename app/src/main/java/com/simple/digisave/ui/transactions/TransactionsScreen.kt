@@ -7,7 +7,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.google.firebase.auth.FirebaseAuth
 import com.simple.digisave.ui.components.EmptyState
 import com.simple.digisave.ui.dashboard.DashboardViewModel
 import com.simple.digisave.ui.dashboard.TransactionRow
@@ -16,18 +15,13 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun TransactionsScreen(
-    viewModel: DashboardViewModel   // ⭐ shared ViewModel injected from MainScreen
+    viewModel: DashboardViewModel,
+    userId: String
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val userId = FirebaseAuth.getInstance().currentUser?.uid
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-
-    // Load data only once; sorting & grouping will update automatically
-    LaunchedEffect(userId) {
-        userId?.let { viewModel.loadData(it) }
-    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -43,15 +37,13 @@ fun TransactionsScreen(
                         actionLabel = "Undo"
                     )
                     if (result == SnackbarResult.ActionPerformed) {
-                        userId?.let {
-                            viewModel.addTransaction(
-                                userId = it,
-                                title = deletedTx.title,
-                                amount = deletedTx.amount,
-                                categoryId = deletedTx.categoryId,
-                                timestamp = deletedTx.timestamp
-                            )
-                        }
+                        viewModel.addTransaction(
+                            userId = userId,
+                            title = deletedTx.title,
+                            amount = deletedTx.amount,
+                            categoryId = deletedTx.categoryId,
+                            timestamp = deletedTx.timestamp
+                        )
                     }
                 }
             },

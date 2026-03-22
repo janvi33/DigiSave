@@ -20,15 +20,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 👇 seed default categories BEFORE UI loads
         lifecycleScope.launch {
             categoryRepository.ensureDefaultCategories()
-        }
 
-        setContent {
-            DigiSaveTheme {
-                val rootNavController = rememberNavController()
-                AppNavGraph(rootNavController = rootNavController)
+            setContent {
+                DigiSaveTheme {
+                    val rootNavController = rememberNavController()
+                    AppNavGraph(rootNavController = rootNavController)
+                }
             }
         }
     }

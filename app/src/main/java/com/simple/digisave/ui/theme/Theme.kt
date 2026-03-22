@@ -10,31 +10,35 @@ import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 private val DigiSaveLightColors = lightColorScheme(
-    primary = PastelGreen,
-    secondary = ActiveBlue,
-    tertiary = PastelPurple,
-    background = BackgroundSoft,
-    surface = SurfaceWhite,
-    onPrimary = TextDark,
-    onSecondary = TextDark,
-    onTertiary = TextDark,
-    onBackground = TextDark,
-    onSurface = TextDark,
-    error = PastelRed,
+    primary          = PastelGreen,
+    onPrimary        = TextDark,
+    secondary        = ActiveBlue,
+    onSecondary      = TextDark,
+    tertiary         = PastelPurple,
+    onTertiary       = TextDark,
+    background       = BackgroundSoft,
+    onBackground     = TextDark,
+    surface          = SurfaceWhite,
+    onSurface        = TextDark,
+    onSurfaceVariant = TextGray,
+    error            = PastelRed,
+    onError          = TextDark,
 )
 
 private val DigiSaveDarkColors = darkColorScheme(
-    primary = AccentTeal,
-    secondary = ActiveBlue,
-    tertiary = PastelPurple,
-    background = TextDark,
-    surface = Color(0xFF121212),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = SurfaceWhite,
-    onSurface = SurfaceWhite,
-    error = PastelRed,
+    primary          = AccentTeal,
+    onPrimary        = Color.White,
+    secondary        = ActiveBlue,
+    onSecondary      = Color.White,
+    tertiary         = PastelPurple,
+    onTertiary       = Color.White,
+    background       = Color(0xFF1A1A1A),
+    onBackground     = SurfaceWhite,
+    surface          = Color(0xFF242424),
+    onSurface        = SurfaceWhite,
+    onSurfaceVariant = TextGray,
+    error            = PastelRed,
+    onError          = TextDark,
 )
 
 @Composable
@@ -47,11 +51,11 @@ fun DigiSaveTheme(
     val systemUiController = rememberSystemUiController()
     SideEffect {
         systemUiController.setStatusBarColor(
-            color = colors.primary,       // 👈 Status bar = same as TopBar
+            color = colors.primary,
             darkIcons = !darkTheme
         )
         systemUiController.setNavigationBarColor(
-            color = colors.surface,       // 👈 Matches BottomNav bg
+            color = colors.surface,
             darkIcons = !darkTheme
         )
     }

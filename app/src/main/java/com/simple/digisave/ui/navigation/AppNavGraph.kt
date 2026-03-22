@@ -33,21 +33,26 @@ fun AppNavGraph(rootNavController: NavHostController) {
             MainScreen(rootNavController, userId)
         }
 
-        // ⭐ UPDATED add-transaction route (supports income/expense)
         composable(
-            route = "add_transaction?type={type}",
+            route = "add_transaction?type={type}&userId={userId}",
             arguments = listOf(
                 navArgument("type") {
                     type = NavType.StringType
                     defaultValue = "none"
                     nullable = true
+                },
+                navArgument("userId") {
+                    type = NavType.StringType
+                    defaultValue = ""
                 }
             )
         ) { backStackEntry ->
             val type = backStackEntry.arguments?.getString("type")
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
             AddTransactionScreen(
                 navController = rootNavController,
-                preselectedType = type
+                preselectedType = type,
+                userId = userId
             )
         }
 

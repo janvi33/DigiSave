@@ -47,7 +47,7 @@ class CategoryRepository @Inject constructor(
                 CategoryEntity(name = "Charity", icon = "💖", type = "expense", group = "Wants"),
                 CategoryEntity(name = "Salary", icon = "💵", type = "income", group = "Inflow")
             )
-            defaults.forEach { categoryDao.insertCategory(it) }
+            categoryDao.insertAll(defaults)
         }
     }
 

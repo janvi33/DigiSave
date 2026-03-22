@@ -1,6 +1,5 @@
 package com.simple.digisave.ui.auth
 
-import android.R.attr.fontWeight
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -31,7 +30,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.simple.digisave.R
 
@@ -139,7 +137,7 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltVie
                 }
 
                 is AuthState.Error -> Text(
-                    "Eror: ${(authState as AuthState.Error).message}",
+                    "Error: ${(authState as AuthState.Error).message}",
                     color = Color.Red,
                     style = MaterialTheme.typography.bodyMedium
                 )
