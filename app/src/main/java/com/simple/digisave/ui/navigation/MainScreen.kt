@@ -174,13 +174,13 @@ fun MainScreen(
                 visible = showFab,
                 expanded = fabExpanded,
                 onExpandedChange = { fabExpanded = it },
-                onAddIncome = {
+                onAddTransaction = {
                     fabExpanded = false
-                    rootNavController.navigate("add_transaction?type=income&userId=$userId")
+                    rootNavController.navigate("add_transaction?userId=$userId")
                 },
-                onAddExpense = {
+                onSetBudget = {
                     fabExpanded = false
-                    rootNavController.navigate("add_transaction?type=expense&userId=$userId")
+                    // TODO: Navigate to budget screen once built
                 }
             )
         }

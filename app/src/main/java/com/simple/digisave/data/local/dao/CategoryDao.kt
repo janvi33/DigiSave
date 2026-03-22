@@ -25,6 +25,10 @@ interface CategoryDao {
     @Query("DELETE FROM categories WHERE id = :categoryId")
     suspend fun deleteCategory(categoryId: Int)
 
+    // Remove duplicate category names — keep only the lowest id for each name
+    @Query("DELETE FROM categories WHERE id NOT IN (SELECT MIN(id) FROM categories GROUP BY name)")
+    suspend fun deduplicateByName()
+
 
 
 }

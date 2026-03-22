@@ -2,17 +2,18 @@ package com.simple.digisave.ui.transactions
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,26 +39,20 @@ fun AddTransactionScreen(
     userId: String = "",
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
-
-    // -----------------------------
-    // FORM STATES
-    // -----------------------------
-    var title by rememberSaveable { mutableStateOf("") }
-    var amountText by rememberSaveable { mutableStateOf("") }
-    var isIncome by rememberSaveable { mutableStateOf(true) } // updated by FAB
+    // ── Form state ───────────────────────────────────────────────
+    var title          by rememberSaveable { mutableStateOf("") }
+    var amountText     by rememberSaveable { mutableStateOf("") }
+    var isIncome       by rememberSaveable { mutableStateOf(true) }
     var selectedCategory by rememberSaveable { mutableStateOf<CategoryWithTotal?>(null) }
-    var note by rememberSaveable { mutableStateOf("") }
-    var dateText by rememberSaveable { mutableStateOf("Select Date") }
+    var note           by rememberSaveable { mutableStateOf("") }
+    var dateText       by rememberSaveable { mutableStateOf("Select Date") }
     var selectedTimestamp by rememberSaveable { mutableStateOf(System.currentTimeMillis()) }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState()
 
-    // -----------------------------
-    // APPLY FAB TYPE ONCE
-    // -----------------------------
     LaunchedEffect(preselectedType) {
-        isIncome = preselectedType == "income"
+        isIncome = preselectedType != "expense"
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -66,7 +61,6 @@ fun AddTransactionScreen(
     // Listen for returned category
     val backStackEntry by navController.currentBackStackEntryAsState()
     val savedState = backStackEntry?.savedStateHandle
-
     LaunchedEffect(savedState) {
         savedState?.get<CategoryWithTotal>("selectedCategory")?.let {
             selectedCategory = it
@@ -74,9 +68,7 @@ fun AddTransactionScreen(
         }
     }
 
-    // -----------------------------
-    // SCREEN UI
-    // -----------------------------
+    // ── Screen ───────────────────────────────────────────────────
     Scaffold(
         topBar = {
             DigiSaveTopBar(
@@ -86,29 +78,23 @@ fun AddTransactionScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-
         bottomBar = {
-            // SAVE BUTTON
-            FilledTonalButton(
+            Button(
                 onClick = {
                     val amount = amountText.toDoubleOrNull()
                     when {
                         title.isBlank() -> scope.launch {
-                            snackbarHostState.showSnackbar("⚠️ Enter a title")
+                            snackbarHostState.showSnackbar("Enter a title")
                         }
-
                         amount == null || amount <= 0 -> scope.launch {
-                            snackbarHostState.showSnackbar("⚠️ Enter a valid amount greater than 0")
+                            snackbarHostState.showSnackbar("Enter a valid amount greater than 0")
                         }
-
                         selectedCategory == null -> scope.launch {
-                            snackbarHostState.showSnackbar("⚠️ Pick a category")
+                            snackbarHostState.showSnackbar("Pick a category")
                         }
-
                         userId.isBlank() -> scope.launch {
-                            snackbarHostState.showSnackbar("⚠️ User not logged in")
+                            snackbarHostState.showSnackbar("User not logged in")
                         }
-
                         else -> {
                             val finalAmount = if (isIncome) amount else -amount
                             viewModel.addTransaction(
@@ -124,14 +110,22 @@ fun AddTransactionScreen(
                     }
                 },
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isIncome) IncomeText else ExpenseText
+                )
             ) {
-                Icon(Icons.Default.Save, null)
+                Icon(Icons.Default.Save, null, tint = androidx.compose.ui.graphics.Color.White)
                 Spacer(Modifier.width(8.dp))
-                Text("Save Transaction", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    if (isIncome) "Save Income" else "Save Expense",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = androidx.compose.ui.graphics.Color.White
+                )
             }
         }
     ) { innerPadding ->
@@ -139,14 +133,42 @@ fun AddTransactionScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState())
                 .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Spacer(Modifier.height(4.dp))
 
-            // -----------------------------
-            // AMOUNT INPUT
-            // -----------------------------
+            // ── Income / Expense toggle ──────────────────────────
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = isIncome,
+                    onClick = { if (!isIncome) { isIncome = true; selectedCategory = null } },
+                    shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = IncomeText.copy(alpha = 0.12f),
+                        activeContentColor = IncomeText,
+                        activeBorderColor = IncomeText
+                    )
+                ) {
+                    Text("Income", fontWeight = FontWeight.SemiBold)
+                }
+                SegmentedButton(
+                    selected = !isIncome,
+                    onClick = { if (isIncome) { isIncome = false; selectedCategory = null } },
+                    shape = RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp),
+                    colors = SegmentedButtonDefaults.colors(
+                        activeContainerColor = ExpenseText.copy(alpha = 0.10f),
+                        activeContentColor = ExpenseText,
+                        activeBorderColor = ExpenseText
+                    )
+                ) {
+                    Text("Expense", fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            // ── Amount ───────────────────────────────────────────
             OutlinedTextField(
                 value = amountText,
                 onValueChange = { amountText = it },
@@ -157,7 +179,7 @@ fun AddTransactionScreen(
                 ),
                 placeholder = { Text("0.00", fontSize = 26.sp) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 leadingIcon = {
                     Text(
                         text = if (isIncome) "+" else "-",
@@ -171,32 +193,26 @@ fun AddTransactionScreen(
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // -----------------------------
-            // TITLE / PAYEE
-            // -----------------------------
+            // ── Title ────────────────────────────────────────────
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
                 label = { Text("Payee / Title") },
                 singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Person, null) },
+                leadingIcon = { Icon(Icons.Default.Edit, null) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // -----------------------------
-            // CATEGORY SELECTOR
-            // -----------------------------
+            // ── Category ─────────────────────────────────────────
             SelectableField(
                 value = selectedCategory?.name ?: "Choose Category",
                 label = "Category",
                 leadingIcon = { Icon(Icons.Default.Category, null) },
-                onClick = { navController.navigate("categories") }
+                onClick = { navController.navigate("categories?type=${if (isIncome) "income" else "expense"}") }
             )
 
-            // -----------------------------
-            // DATE SELECTOR
-            // -----------------------------
+            // ── Date ─────────────────────────────────────────────
             SelectableField(
                 value = dateText,
                 label = "Date",
@@ -204,22 +220,22 @@ fun AddTransactionScreen(
                 onClick = { showDatePicker = true }
             )
 
-            // -----------------------------
-            // NOTE INPUT
-            // -----------------------------
+            // ── Note ─────────────────────────────────────────────
             OutlinedTextField(
                 value = note,
                 onValueChange = { note = it },
                 label = { Text("Note (optional)") },
+                minLines = 2,
+                maxLines = 4,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 
-    // -----------------------------
-    // DATE PICKER dialog
-    // -----------------------------
+    // ── Date picker ──────────────────────────────────────────────
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -228,8 +244,6 @@ fun AddTransactionScreen(
                     onClick = {
                         showDatePicker = false
                         datePickerState.selectedDateMillis?.let { millis ->
-                            // selectedDateMillis is always UTC midnight — read it with a UTC calendar
-                            // to get the exact date the user tapped, then rebuild in local time at noon
                             val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
                             utcCal.timeInMillis = millis
 

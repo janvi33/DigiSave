@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,10 +23,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.simple.digisave.ui.theme.AccentTeal
-import com.simple.digisave.ui.theme.ExpenseChip
-import com.simple.digisave.ui.theme.ExpenseRed
-import com.simple.digisave.ui.theme.IncomeChip
-import com.simple.digisave.ui.theme.IncomeGreen
+
+private val BudgetPurple     = Color(0xFF9575CD)
+private val BudgetPurpleChip = Color(0xFFEDE7F6)
+private val TealChip         = Color(0xFFDFF7F5)
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -32,8 +34,8 @@ fun SpeedDialFAB(
     visible: Boolean,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    onAddIncome: () -> Unit,
-    onAddExpense: () -> Unit,
+    onAddTransaction: () -> Unit,
+    onSetBudget: () -> Unit,
 ) {
     if (!visible) return
 
@@ -42,38 +44,38 @@ fun SpeedDialFAB(
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
 
-        // ------------------ MINI FAB: INCOME ------------------
+        // ------------------ MINI FAB: ADD TRANSACTION ------------------
         AnimatedVisibility(
             visible = expanded,
             enter = fadeIn(tween(250)) + slideInVertically { it / 4 },
             exit = fadeOut(tween(150)) + slideOutVertically { it / 4 }
         ) {
             MiniFab(
-                label = "Add Income",
-                symbol = "+",
-                fabColor = IncomeGreen,
-                chipColor = IncomeChip,
+                label = "Add Transaction",
+                icon = Icons.Default.Receipt,
+                fabColor = AccentTeal,
+                chipColor = TealChip,
                 onClick = {
                     onExpandedChange(false)
-                    onAddIncome()
+                    onAddTransaction()
                 }
             )
         }
 
-        // ------------------ MINI FAB: EXPENSE ------------------
+        // ------------------ MINI FAB: SET BUDGET ------------------
         AnimatedVisibility(
             visible = expanded,
             enter = fadeIn(tween(250, delayMillis = 70)) + slideInVertically { it / 4 },
             exit = fadeOut(tween(150)) + slideOutVertically { it / 4 }
         ) {
             MiniFab(
-                label = "Add Expense",
-                symbol = "-",
-                fabColor = ExpenseRed,
-                chipColor = ExpenseChip,
+                label = "Set Budget",
+                icon = Icons.Default.Savings,
+                fabColor = BudgetPurple,
+                chipColor = BudgetPurpleChip,
                 onClick = {
                     onExpandedChange(false)
-                    onAddExpense()
+                    onSetBudget()
                 }
             )
         }
@@ -107,7 +109,7 @@ fun SpeedDialFAB(
 @Composable
 private fun MiniFab(
     label: String,
-    symbol: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     fabColor: Color,
     chipColor: Color,
     onClick: () -> Unit
@@ -137,7 +139,7 @@ private fun MiniFab(
             modifier = Modifier.size(46.dp),
             containerColor = fabColor
         ) {
-            Text(symbol, color = Color.White, fontSize = 20.sp)
+            Icon(imageVector = icon, contentDescription = label, tint = Color.White)
         }
     }
 }

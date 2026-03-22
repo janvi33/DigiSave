@@ -13,6 +13,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,36 +32,70 @@ class DashboardViewModel @Inject constructor(
     private val _groupOption = MutableStateFlow(GroupOption.NONE)
     val groupOption = _groupOption.asStateFlow()
 
+    // Month navigation — starts on the current calendar month
+    private val _selectedPeriod = MutableStateFlow(
+        Calendar.getInstance().let { it.get(Calendar.YEAR) to it.get(Calendar.MONTH) }
+    )
+
     private var dataJob: Job? = null
 
     fun loadData(userId: String) {
-        // Guard: if the collection pipeline is already running, only sync if needed
         if (dataJob?.isActive == true) return
 
         dataJob = viewModelScope.launch {
-            // Sync from Firestore once per session
             repo.syncTransactions(userId)
 
-            combine(
+            // Split into two sub-flows so we can combine 6 sources cleanly
+            val baseFlow = combine(
                 repo.getTransactionsWithCategory(userId),
-                repo.getTotalIncome(userId),
-                repo.getTotalExpenses(userId),
                 sortOption,
                 groupOption
-            ) { transactions, income, expenses, sort, group ->
+            ) { transactions, sort, group ->
+                Triple(transactions, sort, group)
+            }
+
+            val totalsFlow = combine(
+                repo.getTotalIncome(userId),
+                repo.getTotalExpenses(userId)
+            ) { income, expenses ->
+                Pair(income ?: 0.0, expenses ?: 0.0)
+            }
+
+            combine(baseFlow, totalsFlow, _selectedPeriod) { base, totals, period ->
+                val (transactions, sort, group) = base
+                val (income, expenses) = totals
+                val (selectedYear, selectedMonth) = period
 
                 val list = transactions.map { it.toUi() }
                 val sorted = sortTransactions(list, sort)
                 val grouped = groupTransactions(sorted, group)
 
-                val inc = income ?: 0.0
-                val exp = expenses ?: 0.0
+                // Filter to selected month for the card stats
+                val monthlyList = list.filter { tx ->
+                    val cal = Calendar.getInstance()
+                    cal.timeInMillis = tx.timestamp
+                    cal.get(Calendar.YEAR) == selectedYear &&
+                            cal.get(Calendar.MONTH) == selectedMonth
+                }
+                val monthlyIncome = monthlyList.filter { it.amount > 0 }.sumOf { it.amount }
+                val monthlyExpenses = monthlyList.filter { it.amount < 0 }.sumOf { it.amount }
+
+                // Build the month label (e.g. "March 2026")
+                val labelCal = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, selectedYear)
+                    set(Calendar.MONTH, selectedMonth)
+                }
+                val monthLabel = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
+                    .format(labelCal.time)
 
                 DashboardUiState(
                     isLoading = false,
-                    totalBalance = inc + exp,
-                    totalIncome = inc,
-                    totalExpenses = exp,
+                    totalBalance = income + expenses,
+                    totalIncome = income,
+                    totalExpenses = expenses,
+                    monthlyIncome = monthlyIncome,
+                    monthlyExpenses = monthlyExpenses,
+                    selectedMonthLabel = monthLabel,
                     recentTransactions = sorted.take(5),
                     allTransactions = sorted,
                     groupedTransactions = grouped
@@ -68,6 +104,16 @@ class DashboardViewModel @Inject constructor(
                 _uiState.value = state
             }
         }
+    }
+
+    fun navigateMonth(delta: Int) {
+        val (year, month) = _selectedPeriod.value
+        val cal = Calendar.getInstance().apply {
+            set(Calendar.YEAR, year)
+            set(Calendar.MONTH, month)
+            add(Calendar.MONTH, delta)
+        }
+        _selectedPeriod.value = cal.get(Calendar.YEAR) to cal.get(Calendar.MONTH)
     }
 
     fun updateSort(option: SortOption) {
