@@ -224,7 +224,7 @@ fun AddTransactionScreen(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         showDatePicker = false
                         datePickerState.selectedDateMillis?.let { millis ->
@@ -246,11 +246,18 @@ fun AddTransactionScreen(
                             val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
                             dateText = formatter.format(Date(selectedTimestamp))
                         }
-                    }
-                ) { Text("OK") }
+                    },
+                    modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
+                ) { Text("OK", fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel")  }
+                TextButton(
+                    onClick = { showDatePicker = false },
+                    modifier = Modifier.padding(start = 8.dp, bottom = 8.dp),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) { Text("Cancel", fontWeight = FontWeight.SemiBold) }
             }
         ) {
             DatePicker(state = datePickerState)

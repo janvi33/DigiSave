@@ -1,5 +1,9 @@
 package com.simple.digisave.ui.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,6 +28,7 @@ import com.simple.digisave.ui.dashboard.model.TransactionUi
 import com.simple.digisave.ui.navigation.BottomNavItem
 import com.simple.digisave.ui.theme.AccentTeal
 import com.simple.digisave.ui.theme.PastelGreen
+import com.simple.digisave.ui.theme.PastelRed
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.*
@@ -110,16 +116,35 @@ fun DashboardContent(
             }
         }
 
-        if (uiState.recentTransactions.isEmpty()) {
-            item { EmptyState("No recent transactions") }
-        } else {
-            items(uiState.recentTransactions, key = { it.id }) { tx ->
-                TransactionRow(
-                    tx = tx,
-                    onDelete = { localId, firestoreId ->
-                        onDelete(localId, firestoreId, tx)
+        when {
+            uiState.isLoading -> {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
-                )
+                }
+            }
+            uiState.recentTransactions.isEmpty() -> {
+                item {
+                    EmptyState(
+                        message = "No transactions yet",
+                        subtitle = "Tap + to add your first one",
+                        icon = "💸"
+                    )
+                }
+            }
+            else -> {
+                items(uiState.recentTransactions, key = { it.id }) { tx ->
+                    SwipeableTransactionRow(
+                        tx = tx,
+                        onDelete = { localId, firestoreId ->
+                            onDelete(localId, firestoreId, tx)
+                        }
+                    )
+                }
             }
         }
 
@@ -127,13 +152,65 @@ fun DashboardContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TransactionRow(
+fun SwipeableTransactionRow(
     tx: TransactionUi,
     onDelete: (Int, String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var dismissed by remember { mutableStateOf(false) }
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                dismissed = true
+                onDelete(tx.id, tx.firestoreId)
+            }
+            // Always return false — AnimatedVisibility handles the visual collapse,
+            // so we never leave the box stuck in a permanently-dismissed state.
+            false
+        }
+    )
+
+    AnimatedVisibility(
+        visible = !dismissed,
+        exit = shrinkVertically(animationSpec = tween(250)) + fadeOut(animationSpec = tween(200)),
+        modifier = modifier
+    ) {
+        SwipeToDismissBox(
+            state = dismissState,
+            enableDismissFromStartToEnd = false,
+            backgroundContent = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.errorContainer),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(end = 20.dp)
+                    )
+                }
+            }
+        ) {
+            TransactionRow(tx = tx)
+        }
+    }
+}
+
+@Composable
+fun TransactionRow(
+    tx: TransactionUi,
+    modifier: Modifier = Modifier
+) {
     val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.getDefault())
+    val isIncome = tx.amount > 0
+    val iconBg = if (isIncome) PastelGreen.copy(alpha = 0.25f) else PastelRed.copy(alpha = 0.18f)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -148,14 +225,14 @@ fun TransactionRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .background(
-                            color = PastelGreen.copy(alpha = 0.25f),
-                            shape = RoundedCornerShape(12.dp)
-                        ),
+                        .background(color = iconBg, shape = RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = tx.icon, fontSize = 22.sp)
@@ -180,28 +257,13 @@ fun TransactionRow(
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                val formattedAmount = currencyFormatter.format(kotlin.math.abs(tx.amount))
-                Text(
-                    text = if (tx.amount > 0) "+$formattedAmount" else "-$formattedAmount",
-                    color = if (tx.amount > 0) AccentTeal else MaterialTheme.colorScheme.error,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-
-                Spacer(modifier = Modifier.width(6.dp))
-
-                IconButton(
-                    onClick = { onDelete(tx.id, tx.firestoreId) },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete Transaction",
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.85f)
-                    )
-                }
-            }
+            val formattedAmount = currencyFormatter.format(kotlin.math.abs(tx.amount))
+            Text(
+                text = if (isIncome) "+$formattedAmount" else "-$formattedAmount",
+                color = if (isIncome) AccentTeal else MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
         }
     }
 }

@@ -49,6 +49,10 @@ fun MainScreen(
 
     val dashboardVM: DashboardViewModel = hiltViewModel()
 
+    val currentSort by dashboardVM.sortOption.collectAsState()
+    val currentGroup by dashboardVM.groupOption.collectAsState()
+    val isFilterActive = currentSort != SortOption.DATE_ADDED || currentGroup != GroupOption.NONE
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         // ---------- CONTENT WITH OPTIONAL BLUR ----------
@@ -72,7 +76,13 @@ fun MainScreen(
                         actions = {
                             if (currentRoute == BottomNavItem.Transactions.route) {
                                 IconButton(onClick = { showFilterSheet = true }) {
-                                    Icon(Icons.Default.FilterList, null)
+                                    BadgedBox(
+                                        badge = {
+                                            if (isFilterActive) Badge()
+                                        }
+                                    ) {
+                                        Icon(Icons.Default.FilterList, contentDescription = "Filter")
+                                    }
                                 }
                             }
                         }

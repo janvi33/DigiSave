@@ -56,6 +56,7 @@ class DashboardViewModel @Inject constructor(
                 val exp = expenses ?: 0.0
 
                 DashboardUiState(
+                    isLoading = false,
                     totalBalance = inc + exp,
                     totalIncome = inc,
                     totalExpenses = exp,
