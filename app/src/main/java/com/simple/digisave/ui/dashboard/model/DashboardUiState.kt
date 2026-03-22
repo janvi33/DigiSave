@@ -7,6 +7,9 @@ data class DashboardUiState(
     val totalBalance: Double = 0.0,
     val totalIncome: Double = 0.0,
     val totalExpenses: Double = 0.0,
+    val monthlyIncome: Double = 0.0,
+    val monthlyExpenses: Double = 0.0,
+    val selectedMonthLabel: String = "",
     val recentTransactions: List<TransactionUi> = emptyList(),
     val allTransactions: List<TransactionUi> = emptyList(),
     val groupedTransactions: List<GroupItem> = emptyList()

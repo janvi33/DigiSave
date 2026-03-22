@@ -64,7 +64,7 @@ fun TransactionDto.toEntity(): TransactionEntity =
 // -------------------
 
 fun TransactionWithCategory.toUi(): TransactionUi {
-    val formatter = SimpleDateFormat("MMM d", Locale.getDefault())
+    val formatter = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
 
     return TransactionUi(
         id = id,

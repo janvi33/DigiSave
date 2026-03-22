@@ -56,9 +56,19 @@ fun AppNavGraph(rootNavController: NavHostController) {
             )
         }
 
-        // Categories
-        composable("categories") {
-            CategoriesScreen(rootNavController)
+        // Categories — always opened with a type filter from AddTransactionScreen
+        composable(
+            route = "categories?type={type}",
+            arguments = listOf(
+                navArgument("type") {
+                    type = NavType.StringType
+                    defaultValue = "expense"
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val typeFilter = backStackEntry.arguments?.getString("type") ?: "expense"
+            CategoriesScreen(rootNavController, typeFilter = typeFilter)
         }
     }
 }
