@@ -26,6 +26,10 @@ fun groupTransactions(
         return list.map { GroupItem.Item(it) }
     }
 
+    // Always sort by timestamp descending so date-based group headers consolidate correctly,
+    // regardless of the sort option the user picked (amount, category, etc.)
+    val sortedByDate = list.sortedByDescending { it.timestamp }
+
     val output = mutableListOf<GroupItem>()
 
     val dayFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
@@ -33,7 +37,7 @@ fun groupTransactions(
 
     var lastHeader: String? = null
 
-    list.forEach { tx ->
+    sortedByDate.forEach { tx ->
         val date = Date(tx.timestamp)
 
         val header: String = when (option) {
