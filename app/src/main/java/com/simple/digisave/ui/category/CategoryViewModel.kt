@@ -3,6 +3,7 @@ package com.simple.digisave.ui.category
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
+import com.simple.digisave.data.local.entities.CategoryEntity
 import com.simple.digisave.data.repository.CategoryRepository
 import com.simple.digisave.data.repository.CategoryWithTotal
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,12 +16,12 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CategoryViewModel @Inject constructor(
-    private val repository: CategoryRepository
+    private val repository: CategoryRepository,
+    private val firebaseAuth: FirebaseAuth
 ) : ViewModel() {
 
-    private val userId: String? = FirebaseAuth.getInstance().currentUser?.uid
+    private val userId: String? = firebaseAuth.currentUser?.uid
 
-    // ✅ Expose categories WITH totals
     val categories: StateFlow<List<CategoryWithTotal>> =
         if (userId != null) {
             repository.getCategoriesWithTotals(userId)
@@ -41,7 +42,7 @@ class CategoryViewModel @Inject constructor(
     fun addCategory(name: String, icon: String, type: String, group: String = "Custom") {
         viewModelScope.launch {
             repository.insertCategory(
-                com.simple.digisave.data.local.entities.CategoryEntity(
+                CategoryEntity(
                     name = name,
                     icon = icon,
                     type = type,

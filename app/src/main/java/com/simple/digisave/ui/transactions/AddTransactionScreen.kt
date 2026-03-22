@@ -14,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -22,10 +21,11 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.google.firebase.auth.FirebaseAuth
 import com.simple.digisave.ui.components.DigiSaveTopBar
 import com.simple.digisave.ui.dashboard.DashboardViewModel
 import com.simple.digisave.data.repository.CategoryWithTotal
+import com.simple.digisave.ui.theme.ExpenseText
+import com.simple.digisave.ui.theme.IncomeText
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -34,7 +34,8 @@ import java.util.*
 @Composable
 fun AddTransactionScreen(
     navController: NavController,
-    preselectedType: String? = null,   // income OR expense from FAB
+    preselectedType: String? = null,
+    userId: String = "",
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
 
@@ -59,7 +60,6 @@ fun AddTransactionScreen(
         isIncome = preselectedType == "income"
     }
 
-    val userId = FirebaseAuth.getInstance().currentUser?.uid
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -97,15 +97,15 @@ fun AddTransactionScreen(
                             snackbarHostState.showSnackbar("⚠️ Enter a title")
                         }
 
-                        amount == null -> scope.launch {
-                            snackbarHostState.showSnackbar("⚠️ Enter a valid amount")
+                        amount == null || amount <= 0 -> scope.launch {
+                            snackbarHostState.showSnackbar("⚠️ Enter a valid amount greater than 0")
                         }
 
                         selectedCategory == null -> scope.launch {
                             snackbarHostState.showSnackbar("⚠️ Pick a category")
                         }
 
-                        userId == null -> scope.launch {
+                        userId.isBlank() -> scope.launch {
                             snackbarHostState.showSnackbar("⚠️ User not logged in")
                         }
 
@@ -153,7 +153,7 @@ fun AddTransactionScreen(
                 textStyle = LocalTextStyle.current.copy(
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isIncome) Color(0xFF2E7D32) else Color(0xFFC62828)
+                    color = if (isIncome) IncomeText else ExpenseText
                 ),
                 placeholder = { Text("0.00", fontSize = 26.sp) },
                 singleLine = true,
@@ -163,7 +163,7 @@ fun AddTransactionScreen(
                         text = if (isIncome) "+" else "-",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (isIncome) Color(0xFF2E7D32) else Color(0xFFC62828)
+                        color = if (isIncome) IncomeText else ExpenseText
                     )
                 },
                 label = { Text("Amount") },
@@ -228,11 +228,21 @@ fun AddTransactionScreen(
                     onClick = {
                         showDatePicker = false
                         datePickerState.selectedDateMillis?.let { millis ->
-                            val cal = Calendar.getInstance()
-                            cal.timeInMillis = millis
-                            cal.set(Calendar.HOUR_OF_DAY, 12)
+                            // selectedDateMillis is always UTC midnight — read it with a UTC calendar
+                            // to get the exact date the user tapped, then rebuild in local time at noon
+                            val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                            utcCal.timeInMillis = millis
 
-                            selectedTimestamp = cal.timeInMillis
+                            val localCal = Calendar.getInstance()
+                            localCal.set(Calendar.YEAR,         utcCal.get(Calendar.YEAR))
+                            localCal.set(Calendar.MONTH,        utcCal.get(Calendar.MONTH))
+                            localCal.set(Calendar.DAY_OF_MONTH, utcCal.get(Calendar.DAY_OF_MONTH))
+                            localCal.set(Calendar.HOUR_OF_DAY,  12)
+                            localCal.set(Calendar.MINUTE,       0)
+                            localCal.set(Calendar.SECOND,       0)
+                            localCal.set(Calendar.MILLISECOND,  0)
+
+                            selectedTimestamp = localCal.timeInMillis
                             val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
                             dateText = formatter.format(Date(selectedTimestamp))
                         }

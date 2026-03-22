@@ -17,12 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.simple.digisave.ui.theme.PastelGreen
 
 // -------------------------------------------------------------
 // MAIN NAV BAR
@@ -43,13 +41,13 @@ fun BubbleBottomNavBar(
         contentAlignment = Alignment.BottomCenter
     ) {
 
-        // Curved pastel background
+        // Curved background — uses theme primary so it adapts to dark mode
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(100.dp)
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(PastelGreen)
+                .background(MaterialTheme.colorScheme.primary)
         )
 
         // Floating bubble row
@@ -64,9 +62,7 @@ fun BubbleBottomNavBar(
                 BubbleNavItem(
                     item = item,
                     selected = selectedRoute == item.route,
-                    onClick = {
-                        onTabSelected(item.route)   // ⭐ FIXED: delegate to MainScreen
-                    }
+                    onClick = { onTabSelected(item.route) }
                 )
             }
         }
@@ -88,21 +84,19 @@ private fun BubbleNavItem(
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
-        ), label = ""
+        ), label = "bubbleScale"
     )
 
-    // Dynamic bubble width
     val itemWidth = when {
         item.label.length > 10 -> 90.dp
-        item.label.length > 8 -> 80.dp
-        else -> 70.dp
+        item.label.length > 8  -> 80.dp
+        else                   -> 70.dp
     }
 
-    // Dynamic label size
     val fontSize = when {
         item.label.length > 10 -> 11.sp
-        item.label.length > 8 -> 12.sp
-        else -> 13.sp
+        item.label.length > 8  -> 12.sp
+        else                   -> 13.sp
     }
 
     Column(
@@ -126,26 +120,28 @@ private fun BubbleNavItem(
                 targetState = selected,
                 transitionSpec = {
                     fadeIn(tween(180)) togetherWith fadeOut(tween(180))
-                }, label = ""
+                }, label = "bubbleContent"
             ) { isSelected ->
                 if (isSelected) {
+                    // Outer ring blends into bar background (same primary color)
                     Box(
                         modifier = Modifier
                             .size(78.dp)
                             .scale(scale)
-                            .background(PastelGreen, CircleShape),
+                            .background(MaterialTheme.colorScheme.primary, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Inner contrasting circle
                         Box(
                             modifier = Modifier
                                 .size(58.dp)
-                                .background(Color(0xFF64B5F6), CircleShape),
+                                .background(MaterialTheme.colorScheme.secondary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = item.icon,
                                 contentDescription = item.label,
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSecondary,
                                 modifier = Modifier.size(30.dp)
                             )
                         }
@@ -154,14 +150,14 @@ private fun BubbleNavItem(
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.label,
-                        tint = Color.Black.copy(alpha = 0.55f),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                         modifier = Modifier.size(30.dp)
                     )
                 }
             }
         }
 
-        // Label
+        // Label — only visible when selected
         AnimatedVisibility(
             visible = selected,
             enter = fadeIn(tween(200)),
@@ -170,7 +166,7 @@ private fun BubbleNavItem(
             Text(
                 text = item.label,
                 fontSize = fontSize,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 softWrap = false,

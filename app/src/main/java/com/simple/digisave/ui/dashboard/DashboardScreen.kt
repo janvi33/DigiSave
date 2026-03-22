@@ -1,8 +1,5 @@
 package com.simple.digisave.ui.dashboard
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,7 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.simple.digisave.ui.components.EmptyState
@@ -37,7 +33,7 @@ fun DashboardScreen(
     bottomNavController: NavController,
     userId: String,
     snackbarHostState: SnackbarHostState, // ✅ now received from MainScreen
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
@@ -118,18 +114,12 @@ fun DashboardContent(
             item { EmptyState("No recent transactions") }
         } else {
             items(uiState.recentTransactions, key = { it.id }) { tx ->
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    TransactionRow(
-                        tx = tx,
-                        onDelete = { localId, firestoreId ->
-                            onDelete(localId, firestoreId, tx) // ✅ pass tx so we can undo
-                        }
-                    )
-                }
+                TransactionRow(
+                    tx = tx,
+                    onDelete = { localId, firestoreId ->
+                        onDelete(localId, firestoreId, tx)
+                    }
+                )
             }
         }
 

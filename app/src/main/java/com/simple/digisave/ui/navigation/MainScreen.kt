@@ -12,10 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.blur
@@ -47,8 +47,7 @@ fun MainScreen(
     var fabExpanded by remember { mutableStateOf(false) }
     var showFilterSheet by remember { mutableStateOf(false) }
 
-    val dashboardVM: DashboardViewModel =
-        hiltViewModel(remember(rootNavController) { rootNavController.currentBackStackEntry!! })
+    val dashboardVM: DashboardViewModel = hiltViewModel()
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -112,12 +111,13 @@ fun MainScreen(
                             mainNavController = rootNavController,
                             bottomNavController = bottomNavController,
                             userId = userId,
-                            snackbarHostState = snackbarHostState
+                            snackbarHostState = snackbarHostState,
+                            viewModel = dashboardVM
                         )
                     }
 
                     composable(BottomNavItem.Transactions.route) {
-                        TransactionsScreen(viewModel = dashboardVM)
+                        TransactionsScreen(viewModel = dashboardVM, userId = userId)
                     }
 
                     composable(BottomNavItem.Budgets.route) { Text("Budgets") }
@@ -166,11 +166,11 @@ fun MainScreen(
                 onExpandedChange = { fabExpanded = it },
                 onAddIncome = {
                     fabExpanded = false
-                    rootNavController.navigate("add_transaction?type=income")
+                    rootNavController.navigate("add_transaction?type=income&userId=$userId")
                 },
                 onAddExpense = {
                     fabExpanded = false
-                    rootNavController.navigate("add_transaction?type=expense")
+                    rootNavController.navigate("add_transaction?type=expense&userId=$userId")
                 }
             )
         }

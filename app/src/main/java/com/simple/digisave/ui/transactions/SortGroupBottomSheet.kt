@@ -66,7 +66,7 @@ fun SortGroupBottomSheet(
             )
             Spacer(modifier = Modifier.height(10.dp))
 
-            SortOption.values().forEach { option ->
+            SortOption.entries.forEach { option ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -93,7 +93,7 @@ fun SortGroupBottomSheet(
             )
             Spacer(modifier = Modifier.height(10.dp))
 
-            GroupOption.values().forEach { option ->
+            GroupOption.entries.forEach { option ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier

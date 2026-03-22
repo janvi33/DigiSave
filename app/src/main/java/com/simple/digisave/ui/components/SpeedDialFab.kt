@@ -10,16 +10,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.simple.digisave.ui.theme.AccentTeal
+import com.simple.digisave.ui.theme.ExpenseChip
+import com.simple.digisave.ui.theme.ExpenseRed
+import com.simple.digisave.ui.theme.IncomeChip
+import com.simple.digisave.ui.theme.IncomeGreen
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -46,11 +51,13 @@ fun SpeedDialFAB(
             MiniFab(
                 label = "Add Income",
                 symbol = "+",
-                color = Color(0xFF7ED9A7)
-            ) {
-                onExpandedChange(false)
-                onAddIncome()
-            }
+                fabColor = IncomeGreen,
+                chipColor = IncomeChip,
+                onClick = {
+                    onExpandedChange(false)
+                    onAddIncome()
+                }
+            )
         }
 
         // ------------------ MINI FAB: EXPENSE ------------------
@@ -62,11 +69,13 @@ fun SpeedDialFAB(
             MiniFab(
                 label = "Add Expense",
                 symbol = "-",
-                color = Color(0xFFFFB5A3)
-            ) {
-                onExpandedChange(false)
-                onAddExpense()
-            }
+                fabColor = ExpenseRed,
+                chipColor = ExpenseChip,
+                onClick = {
+                    onExpandedChange(false)
+                    onAddExpense()
+                }
+            )
         }
 
         // ------------------ MAIN BIG FAB ------------------
@@ -75,7 +84,7 @@ fun SpeedDialFAB(
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioMediumBouncy,
                 stiffness = Spring.StiffnessLow
-            ), label = ""
+            ), label = "fabRotation"
         )
 
         FloatingActionButton(
@@ -83,11 +92,11 @@ fun SpeedDialFAB(
             modifier = Modifier
                 .size(64.dp)
                 .shadow(20.dp, CircleShape),
-            containerColor = Color(0xFF5AA6FF)
+            containerColor = AccentTeal
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "",
+                contentDescription = "Add transaction",
                 modifier = Modifier.rotate(rotation),
                 tint = Color.White
             )
@@ -99,46 +108,34 @@ fun SpeedDialFAB(
 private fun MiniFab(
     label: String,
     symbol: String,
-    color: Color,
+    fabColor: Color,
+    chipColor: Color,
     onClick: () -> Unit
 ) {
-    // Pick pastel for label automatically based on symbol
-    val pastelLabelColor = when (symbol) {
-        "+" -> Color(0xFFDFF7E6)  // pastel green-mint
-        "-" -> Color(0xFFFFE7E2)  // pastel peach-red
-        else -> Color(0xFFF2F2F2) // neutral gray
-    }
-
     Row(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        // ----------- PASTEL LABEL CHIP (NO BLUR) -----------
+        // Label chip
         Box(
             modifier = Modifier
-                .shadow(
-                    elevation = 6.dp,
-                    shape = RoundedCornerShape(18.dp),
-                )
-                .background(
-                    color = pastelLabelColor,
-                    shape = RoundedCornerShape(18.dp)
-                )
+                .shadow(elevation = 6.dp, shape = RoundedCornerShape(18.dp))
+                .background(color = chipColor, shape = RoundedCornerShape(18.dp))
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             Text(
                 text = label,
-                color = Color.Black.copy(alpha = 0.75f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
                 fontSize = 14.sp
             )
         }
 
-        // ----------- MINI FAB BUTTON -----------
+        // Mini FAB button
         FloatingActionButton(
             onClick = onClick,
             modifier = Modifier.size(46.dp),
-            containerColor = color
+            containerColor = fabColor
         ) {
             Text(symbol, color = Color.White, fontSize = 20.sp)
         }

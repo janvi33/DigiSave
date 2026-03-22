@@ -84,7 +84,7 @@ fun CategoriesScreen(
 
                                     // Divider between items (but not after last)
                                     if (index < cats.lastIndex) {
-                                        Divider(
+                                        HorizontalDivider(
                                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                                             thickness = 0.5.dp,
                                             modifier = Modifier.padding(horizontal = 16.dp)

@@ -34,15 +34,8 @@ fun BalanceCard(
         label = "balanceColor"
     )
 
-    val incomeColor by animateColorAsState(
-        targetValue = AccentTeal,
-        label = "incomeColor"
-    )
-
-    val expenseColor by animateColorAsState(
-        targetValue = MaterialTheme.colorScheme.error,
-        label = "expenseColor"
-    )
+    val incomeColor = AccentTeal
+    val expenseColor = MaterialTheme.colorScheme.error
 
     Card(
         modifier = Modifier
